@@ -1,7 +1,7 @@
 import type { ProjectsAddResult } from "../../../../packages/gateway-protocol/src/index.js";
 import { t } from "../../i18n/index.ts";
 import { registerNewSessionSetupEnglish } from "../../i18n/locales/en-new-session-setup.ts";
-import type { ChatAttachment, HumanMention } from "../../lib/chat/chat-types.ts";
+import type { HumanMention } from "../../lib/chat/chat-types.ts";
 import { resolveCurrentUserIdentity } from "../../lib/chat/current-user-identity.ts";
 import { updateHumanMentions } from "../../lib/chat/human-mentions.ts";
 import {
@@ -17,7 +17,7 @@ import { NewSessionAttachmentDraft } from "./attachment-draft.ts";
 import { promptNewSessionNotifications } from "./background-session-notice.ts";
 import { NewSessionCapabilityController } from "./capability-controller.ts";
 import * as catalog from "./catalog-target.ts";
-import { NewSessionComposerTextareaController } from "./composer-controller.ts";
+import { createNewSessionComposerTextarea } from "./composer-controller.ts";
 import type { DraftSessionCreateOverrides, NewSessionVisibility } from "./create-params.ts";
 import { CreationComposer, retainCreatedComposer } from "./creation-composer.ts";
 import { buildSelectedSessionCreateParams } from "./draft-create-params.ts";
@@ -32,6 +32,7 @@ import {
 import { DraftSessionStartup, type DraftStartupResumption } from "./draft-session-startup.ts";
 import type {
   DraftSubmissionCallbacks,
+  RestoredDraftState,
   DraftSubmissionSnapshot,
 } from "./draft-submission-contract.ts";
 import { prepareDraftSubmission } from "./draft-submission-input.ts";
@@ -89,7 +90,7 @@ export class DraftSubmissionFlow {
   get creationComposer(): CreationComposer | undefined {
     return this.creationComposerValue?.canDisplay() ? this.creationComposerValue : undefined;
   }
-  readonly composerTextarea = new NewSessionComposerTextareaController();
+  readonly composerTextarea = createNewSessionComposerTextarea();
   permissionMode: SessionCreateParams["permissionMode"];
   readonly draftPersistence: NewSessionDraftPersistence;
   readonly capabilities: NewSessionCapabilityController;
@@ -200,14 +201,7 @@ export class DraftSubmissionFlow {
     this.callbacks.requestUpdate();
   }
 
-  restoreDraftState(state: {
-    message: string;
-    mentions?: readonly HumanMention[];
-    attachments: ChatAttachment[];
-    visibility: NewSessionVisibility;
-    toolOverrides?: NewSessionCapabilityController["toolOverrides"];
-    permissionMode?: SessionCreateParams["permissionMode"];
-  }) {
+  restoreDraftState(state: RestoredDraftState) {
     this.draftPersistence.noteDraftReplaced();
     this.updateMessage(state.message);
     this.mentionsValue = state.mentions ?? [];
